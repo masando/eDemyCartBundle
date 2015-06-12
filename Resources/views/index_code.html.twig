@@ -1,0 +1,90 @@
+<div id="cart">
+    <div id="cart_title">
+        {{ "cart.shoppingcart"|trans|upper }}
+    </div>
+    {% if cart.isempty %}
+        <div id="cart_empty" class="center">
+            <h3>{{ 'cart.empty'|trans }}</h3>
+        </div>
+    {% else %}
+        {% for flashMessage in app.session.flashbag.get('notice') %}
+            <div class="flash-notice">
+              {{ flashMessage }}
+            </div>
+        {% endfor %}
+        {% for item in items %}
+            <div class="cart_row">
+                <div class="cart_product_thumb float_left align_right">
+                    <a href="{{ path('edemy_main_product_show', { 'product_slug' : cart.product(item).slug }) }}">{{ render(controller('edemy.cartcontroller:showImageAction', {'id':item.productId} )) }}</a>
+                    <br/>
+                    <div class="cart_product_name">{{ cart.product(item).name|upper }}</div>
+                </div>
+                <div class="cart_product_quantity float_left align_center">
+                    {{ item.quantity }}&nbsp;{{ 'cart.units'|transchoice(item.quantity)|upper }}
+                </div>
+                <div class="cart_product_subtotal float_left align_center">
+                    {{ item.quantity * cart.itemprice(item) }}€
+                </div>
+                <div class="cart_product_onemore float_left align_center">
+                    <a href="{{ path('edemy_main_cart_add', {'id' : item.productId }) }}"><div class="cart_add_another">{{ 'cart.onemore'|trans|upper }}</div></a>
+                </div>
+                <div class="cart_product_oneless float_left align_right">
+                    <a href="{{ path('edemy_main_cart_remove', {'id' : item.productId }) }}"><div class="cart_remove_one">{{ 'cart.oneless'|trans|upper }}</div></a>
+                </div>
+            </div>
+            {#
+            <div id="discount">
+                {{ form(discountform) }}
+            </div>
+            #}
+            <div class="clear"></div>
+        {% endfor %}
+        <div id="cart_total" class="float_right align_right">
+            <h2>{{ 'cart.total'|trans|upper }}: &nbsp;{{ cart.total }}&euro;</h2>
+            <p>{{ 'cart.shipping'|trans|upper }}: &nbsp;4.95&euro;</p>
+        </div>
+        <div class="clear"></div>
+    {% endif %}
+    <div class="clear"></div>
+    
+</div> {# end #cart #}
+{% if cart.isnotempty  %}
+    <div id="cart_form">
+        {% if host == 'beta.blenderseyewear.es' or env == 'dev' %}
+        <form id="checkout_form" name="checkout_form" method="post" action="https://www.sandbox.paypal.com/cgi-bin/webscr">
+        {% else %}
+        <form id="checkout_form" name="checkout_form" method="post" action="https://www.paypal.com/cgi-bin/webscr">
+        {% endif %}
+            <input id="cmd" name="cmd" type="hidden" value="_cart" />
+            <input id="upload" name="upload" type="hidden" value="1" />
+            <input id="charset" name="charset" type="hidden" value="utf-8" />
+            <input id="no_shipping" name="no_shipping" type="hidden" value="2" />
+            <input id="no_note" name="no_note" type="hidden" value="0" />
+            <input id="rm" name="rm" type="hidden" value="2" />
+            <input id="business" name="business" type="hidden" value="pedidos@blenderseyewear.es" />
+            <input id="cbt" name="cbt" type="hidden" value="Volver to {{ frontcontroller }}"/>
+            <input id="currency_code" name="currency_code" type="hidden" value="EUR" />
+            <input id="lc" name="lc" type="hidden" value="ES" />
+            <input id="shopping_url" name="shopping_url" type="hidden" value="http://{{ frontcontroller }}/{{ locale }}"/>
+            <input id="notify_url" name="notify_url" type="hidden" value="http://{{ frontcontroller }}/{{ locale }}/cart/notify" />
+            <input id="return" name="return" type="hidden" value="http://{{ frontcontroller }}/{{ locale }}/cart/success" />
+            <input id="cancel_return" name="cancel_return" type="hidden" value="http://{{ frontcontroller }}/{{ locale }}/cart" />
+            {% for item in items %}
+                <input id="item_number_{{ loop.index }}" name="item_number_{{ loop.index }}" type="hidden" value="{{ cart.product(item).model }}" />
+                <input id="quantity_{{ loop.index }}" name="quantity_{{ loop.index }}" type="hidden" value="{{ item.quantity }}" />
+                <input id="item_name_{{ loop.index }}" name="item_name_{{ loop.index }}" type="hidden" value="{{ cart.product(item).name }}" />
+                <input id="amount_{{ loop.index }}" name="amount_{{ loop.index }}" type="hidden" value="{{ cart.getitemprice(item) }}" />
+                {% if loop.index0 %}
+                <input id="shipping_{{ loop.index }}" name="shipping_{{ loop.index }}" type="hidden" value="0" />
+                {% else %}
+                <input id="shipping_{{ loop.index }}" name="shipping_{{ loop.index }}" type="hidden" value="4.95" />
+                {% endif %}
+            {% endfor %}
+            
+            <input id="cart_button_checkout" type="submit" value="{{ 'cart.buy'|trans|upper }}" />
+            <noscript>
+                <input type="submit" value="Comprar" />
+            </noscript>
+        </form>
+    </div>
+{% endif %}

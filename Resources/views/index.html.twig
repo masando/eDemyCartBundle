@@ -1,0 +1,67 @@
+<div id="cart">
+    <div id="cart_title">
+        {{ "cart.shoppingcart"|translate|upper }}
+    </div>
+    {% if not(cart.products|length) %}
+        <div id="cart_empty" class="center">
+            <h3>{{ 'cart.empty'|translate }}</h3>
+        </div>
+    {% else %}
+        {% for flashMessage in app.session.flashbag.get('notice') %}
+            <div class="flash-notice">
+              {{ flashMessage }}
+            </div>
+        {% endfor %}
+        {% for item in cart.products %}
+            <div class="cart_row">
+                <div class="cart_product_thumb float_left align_right">
+                    <a href="{{ path('edemy_product_product_details', { 'slug' : item.slug }) }}">
+                        {# render(controller('edemy.cartcontroller:showImageAction', {'id':item.productId} )) #}
+                        <div class="product_imagen">
+                            {% for imagen in item.imagenes %}
+                                <img itemprop="image" src="{{ imagen.webpath(350, null, app.request.host) }}" width="350px" />
+                            {% endfor %}
+                        </div>
+                    </a>
+                    <div class="cart_product_name">{{ item.name|upper }}</div>
+                </div>
+                <div class="cart_product_quantity float_left align_center">
+                    {{ cart.quantity('cesta', item.id) }}
+                    {#
+                    {% if item.quantity == 1 %}
+                    {{ item.quantity }}&nbsp;{{ 'cart.unit'|translate|upper }}
+                    {% else %}
+                    {{ item.quantity }}&nbsp;{{ 'cart.units'|translate|upper }}
+                    {% endif %}
+                    #}
+                </div>
+                <div class="cart_product_subtotal float_left align_center">
+                    {{ cart.quantity('cesta', item.id) * item.price }}€
+                    {# 
+                    {{ item.quantity * cart.itemprice(item) }} € 
+                    #}
+                </div>
+                <div class="cart_product_onemore float_left align_center">
+                    <a href="{{ path('edemy_main_cart_add', {'id' : item.id }) }}"><div class="cart_add_another">{{ 'cart.onemore'|translate|upper }}</div></a>
+                </div>
+                <div class="cart_product_oneless float_left align_right">
+                    <a href="{{ path('edemy_main_cart_remove', {'id' : item.id }) }}"><div class="cart_remove_one">{{ 'cart.oneless'|translate|upper }}</div></a>
+                </div>
+            </div>
+            <br/>
+            <br/>
+            <div class="clear"></div>
+        {% endfor %}
+        <div id="cart_total" class="float_right align_right">
+            <h2>{{ 'cart.total'|translate|upper }}: &nbsp;{{ cart.total('cesta') }}&euro;</h2>
+            <p>{{ 'cart.shipping'|translate|upper }}: &nbsp;4.95&euro;</p>
+        </div>
+        <div class="clear"></div>
+    {% endif %}
+    <div class="clear"></div>    
+</div>
+{#
+<div>
+<a href="{{ path('edemy_main_cart_customercreate') }}">Datos</a>
+</div>
+#}

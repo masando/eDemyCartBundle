@@ -1,0 +1,9 @@
+<div id="cart_tray">
+    {% if cart.quantity > 0 %}
+        <a href="{{ path('edemy_main_cart_index') }}">
+            {{ 'cart.cart'|translate }}&nbsp;({{ cart.quantity }}) - {{ cart.total }}€
+        </a>
+    {% else %}
+        Carrito Vacío
+    {% endif %}
+</div>

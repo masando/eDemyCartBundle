@@ -1,0 +1,22 @@
+{
+  "name" : "edemy/cartbundle",
+  "description" : "Cart Bundle for eDemy Framework",
+  "type" : "symfony-bundle",
+  "authors" : [{
+    "name" : "Manuel Sanchís",
+    "email" : "msanchis@edemy.es"
+  }],
+  "keywords" : [
+    "edemy cart bundle"
+  ],
+  "license" : [
+    "GNU v2"
+  ],
+  "require" : {
+    "edemy/mainbundle": "*"
+  },
+  "autoload" : {
+    "psr-0" : { "eDemy\\CartBundle" : "" }
+  },
+  "target-dir": "eDemy/CartBundle"
+}

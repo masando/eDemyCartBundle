@@ -1,0 +1,11 @@
+services:
+    edemy.cart:
+        class:      "eDemy\CartBundle\Entity\Cart"
+        arguments:  ["@doctrine.orm.entity_manager", "@jms_serializer", "@session"]
+
+    edemy.cart_controller:
+        class:      "eDemy\CartBundle\Controller\CartController"
+        calls:
+            - [setEventDispatcher, ["@event_dispatcher"]]
+        tags:
+            - { name: kernel.event_subscriber }
