@@ -6,8 +6,26 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 class eDemyCartBundle extends Bundle
 {
-    static public function getBundleName()
+    public static function getBundleName($type = null)
     {
-        return 'eDemyCartBundle';
+        if ($type == null) {
+
+            return 'eDemyCartBundle';
+        } else {
+            if ($type == 'Simple') {
+
+                return 'Cart';
+            } else {
+                if ($type == 'simple') {
+
+                    return 'cart';
+                }
+            }
+        }
+    }
+
+    public static function eDemyBundle() {
+
+        return true;
     }
 }

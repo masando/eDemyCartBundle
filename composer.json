@@ -13,7 +13,9 @@
     "GNU v2"
   ],
   "require" : {
-    "edemy/mainbundle": "*"
+    "edemy/mainbundle": "*",
+    "payum/payum-bundle": "*",
+    "payum/offline": "*"
   },
   "autoload" : {
     "psr-0" : { "eDemy\\CartBundle" : "" }

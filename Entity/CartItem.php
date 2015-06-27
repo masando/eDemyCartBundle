@@ -2,48 +2,95 @@
 
 namespace eDemy\CartBundle\Entity;
 
+use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
+use Gedmo\Mapping\Annotation as Gedmo;
+use Gedmo\Translatable\Translatable;
 use JMS\Serializer\Annotation as SER;
+use eDemy\MainBundle\Entity\BaseEntity;
 
 /**
- * @SER\ExclusionPolicy("all")
+ * @ORM\Table("CartItem")
+ * @ORM\Entity
  */
-class CartItem
+class CartItem extends BaseEntity
 {
-    protected $items;
-    
     /**
-     * @Type("integer")
+     * @ORM\ManyToOne(targetEntity="eDemy\CartBundle\Entity\Cart", inversedBy="items")
      */
-    protected $product_id;
-    
-    public function getProductId() {
-        return $this->product_id;
+    protected $cart;
+
+    public function setCart($cart)
+    {
+        $this->cart = $cart;
+
+        return $this;
     }
 
-    public function setProductId($product_id) {
-        $this->product_id = $product_id;
+    public function getCart()
+    {
+        return $this->cart;
     }
-
-    /***************************************/
 
     /**
-     * @Type("integer")
+     * @ORM\Column(name="ref", type="integer")
+     */
+    protected $ref;
+
+    public function setRef($ref)
+    {
+        $this->ref = $ref;
+
+        return $this;
+    }
+
+    public function getRef()
+    {
+        return $this->ref;
+    }
+
+    public function showRefInPanel()
+    {
+        return true;
+    }
+
+    public function showRefInForm()
+    {
+        return true;
+    }
+
+    /**
+     * @ORM\Column(name="quantity", type="integer")
      */
     protected $quantity;
 
-    public function getQuantity() {
+    public function setQuantity($quantity)
+    {
+        $this->quantity = $quantity;
+
+        return $this;
+    }
+
+    public function getQuantity()
+    {
         return $this->quantity;
     }
 
-    public function setQuantity($q) {
-        $this->quantity = $q;
-    }
-
-    /***************************************/
-
-    public function addObject($object)
+    public function showQuantityInPanel()
     {
-        $this->items[] = $object;
+        return true;
     }
+
+    public function showQuantityInForm()
+    {
+        return true;
+    }
+
+    //// PRODUCT
+    public function getProduct() {
+        $product = $this->getCart()->getEntityManager()->getRepository('eDemyProductBundle:Product')->findOneById($this->getRef());
+
+        return $product;
+    }
+
 }

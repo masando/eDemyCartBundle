@@ -1,50 +1,50 @@
-edemy_main_cart_index:
+edemy_cart_cart_index:
     path:           /{_locale}/cart
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en }
 
-edemy_main_cart_customercreate:
+edemy_cart_cart_customercreate:
     path:           /{_locale}/cart/customer
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en }
 
-edemy_main_cart_creditcard:
+edemy_cart_cart_creditcard:
     path:           /{_locale}/cart/creditcard
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en }
 
-edemy_main_cart_cashondelivery:
+edemy_cart_cart_cashondelivery:
     path:           /{_locale}/cart/cashondelivery
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en }
 
-edemy_main_cart_paypal:
+edemy_cart_cart_paypal:
     path:           /{_locale}/cart/paypal
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en }
 
-edemy_main_cart_customernotify:
+edemy_cart_cart_customernotify:
     path:           /{_locale}/cart/customer/notify
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en }
 
-edemy_main_cart_add:
+edemy_cart_cart_add:
     path:           /{_locale}/cart/add/{id}
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en, id: \d+ }
 
-edemy_main_cart_remove:
+edemy_cart_cart_remove:
     path:           /{_locale}/cart/remove/{id}
     defaults:       { _controller: edemy.main:indexAction }
     methods:        [ GET, DELETE ]
     requirements:   { _locale: es|en, id: \d+ }
 
-edemy_main_cart_notify:
+edemy_cart_cart_notify:
     path:           /{_locale}/cart/notify
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en }
 
-edemy_main_cart_success:
+edemy_cart_cart_success:
     path:           /{_locale}/cart/success
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en }
