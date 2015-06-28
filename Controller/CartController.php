@@ -10,6 +10,9 @@ use Symfony\Component\EventDispatcher\GenericEvent;
 use eDemy\MainBundle\Entity\Param;
 use eDemy\CartBundle\Entity\Cart;
 use eDemy\CartBundle\Entity\CartItem;
+use eDemy\CartBundle\Tools\PaypalClient;
+use Zend\Http\Client;
+
 
 class CartController extends BaseController
 {
@@ -17,16 +20,18 @@ class CartController extends BaseController
     {
         return self::getSubscriptions('cart', ['cart'], array(
             'edemy_header_module_'              => array('onHeaderModuleTray', 0),
-//            'edemy_cart_cart_index'             => array('onCartIndex', 0),
+            //'edemy_cart_cart_index'           => array('onCartIndex', 0),
             'edemy_cart_cart_customercreate'    => array('onCartCustomerCreate', 0),
             'edemy_cart_cart_customernotify'    => array('onCartCustomeNotify', 0),
             'edemy_cart_cart_creditcard'        => array('onCartCreditCard', 0),
             'edemy_cart_cart_cashondelivery'    => array('onCartCashOnDelivery', 0),
             'edemy_cart_cart_paypal'            => array('onCartPaypal', 0),
-            'edemy_cart_cart_add'        => array('onCartAdd', 0),
-            'edemy_cart_cart_remove'     => array('onCartRemove', 0),
-            'edemy_cart_cart_notify'     => array('onCartNotify', 0),
-            'edemy_cart_cart_success'    => array('onCartSuccess', 0),
+            'edemy_cart_cart_add'               => array('onCartAdd', 0),
+            'edemy_cart_cart_remove'            => array('onCartRemove', 0),
+            'edemy_cart_cart_notify'            => array('onCartNotify', 0),
+            'edemy_cart_cart_success'           => array('onCartSuccess', 0),
+            'edemy_cart_paypal_landing'         => array('onPaypalAction', 0),
+            'edemy_cart_paypal_paymentcompleted'=> array('onPaypalPaymentCompletedAction', 0),
         ));
     }
 
@@ -274,4 +279,155 @@ class CartController extends BaseController
 
         return $form;
     }
+
+    public function onPaypalAction($landing = 'paypal') {
+        //TODO comprobar que no se ha producido ninguna
+
+        $uri = 'https://api-3t.sandbox.paypal.com/nvp';
+        $returnURL = 'http://www.maste.es/app_dev.php/paypal/paymentcompleted';
+        $cancelURL = 'http://www.maste.es/app_dev.php/es/cart';
+
+        //$amount = $order->getTotal();
+
+        $currency_code = 'EUR';
+
+        $adapter = new PaypalClient('dev', $uri);
+        // $paymentAmount,
+        // $returnURL,
+        // $cancelURL,
+        // $currencyID,
+        // $items,
+        // $landing = 'paypal',
+        // $payment_action = 'Authorization')
+        $reply = $adapter->ecSetExpressCheckout(
+            $amount,
+            $returnURL,
+            $cancelURL,
+            $currency_code,
+            $order,
+            $landing
+        );
+         die(var_dump($reply));
+
+        if ($reply->isSuccess()) {
+            $replyData = $adapter->parse($reply->getBody());
+            //echo(var_dump($reply));
+            //echo($replyData->TOKEN);
+            //die();
+            if ($replyData->ACK == 'Success' || $replyData->ACK == 'SUCCESSWITHWARNING') {
+                //die("dentro");
+                $token = $replyData->TOKEN; // ...It's already URL encoded for us.
+                // Save the amount total... We must use this when we capture the funds.
+                $_SESSION['CHECKOUT_AMOUNT'] = $amount;
+                // Redirect to the PayPal express checkout page, using the token.
+
+                if($this->container->getParameter('kernel.environment') == 'dev') {
+                    //die();
+                    header(
+                        'Location: ' . $adapter->api_sandbox_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
+                    );
+                } else {
+
+                    header(
+                        'Location: ' . $adapter->api_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
+                    );
+                }
+            }
+        } else {
+            throw new Exception('ECSetExpressCheckout: We failed to get a successfull response from PayPal.');
+        }
+        die("a");
+    }
+
+    public function onPaypalPaymentCompletedAction() {
+        die('a');
+        $request = $this->getRequest();
+        $token = $request->query->get('token');
+        $payerid = $request->query->get('PayerID');
+
+        $data = array();
+
+        if($this->container->getParameter('kernel.environment') == 'dev') {
+            $uri = 'https://api-3t.sandbox.paypal.com/nvp';
+            $returnURL = 'http://www.be-deco.com/app_dev.php/cart/paymentcomplete';
+            $cancelURL = 'http://www.be-deco.com/app_dev.php/cart/paymentcancelled';
+        } else {
+            $uri = 'https://api-3t.paypal.com/nvp';
+            $returnURL = 'http://www.be-deco.com/cart/paymentcomplete';
+            $cancelURL = 'http://www.be-deco.com/cart/cart';
+        }
+        $currency_code = 'EUR';
+
+        $adapter = new Paypal_Client($this->container->getParameter('kernel.environment'), $uri);
+
+        $reply = $adapter->ecGetExpressCheckoutDetails(
+            $token
+        );
+        $this->order = null;
+        if ($reply->isSuccess()) {
+            $replyData = $adapter->parse($reply->getBody());
+            if ($replyData->ACK == 'Success' || $replyData->ACK == 'SUCCESSWITHWARNING') {
+                $payer_id = $replyData->PAYERID;
+                $payerstatus = $replyData->PAYERSTATUS;
+
+                $this->order = $this->setOrder($replyData);
+                if($this->order){
+                    $amount = $this->order->getTotal();
+                }
+            }
+        } else {
+            throw new Exception('No hemos obtenido una respuesta de Paypal.');
+        }
+        if($amount!=null){
+            $this->confirmPayAction($token, $payer_id, $amount, $currency_code);
+        }
+        return $this->render('eDemyCartBundle:Cart:confirm.html.twig', array(
+            'order' => $this->order
+        ));
+    }
+
+    /**
+     * @Route("/paymentconfirmed")
+     */
+    public function confirmPayAction($token, $payer_id, $payment_amount, $currency_code) {
+        if($this->container->getParameter('kernel.environment') == 'dev') {
+            $uri = 'https://api-3t.sandbox.paypal.com/nvp';
+        } else {
+            $uri = 'https://api-3t.paypal.com/nvp';
+        }
+        $adapter = new Paypal_Client($this->container->getParameter('kernel.environment'), $uri);
+        $reply = $adapter->ecDoExpressCheckout(
+            $token,
+            $payer_id,
+            $payment_amount,
+            $currency_code
+        );
+        if ($reply->isSuccess()) {
+            $replyData = $adapter->parse($reply->getBody());
+            //echo(var_dump($reply));
+            //echo($replyData->TOKEN);
+            //die();
+            if ($replyData->ACK == 'Success' || $replyData->ACK == 'SUCCESSWITHWARNING') {
+                //die("dentro");
+                $transactionid = $replyData->PAYMENTINFO_0_TRANSACTIONID; // ...It's already URL encoded for us.
+                $paymenttype = $replyData->PAYMENTINFO_0_TRANSACTIONTYPE;
+                $ordertime = $replyData->PAYMENTINFO_0_ORDERTIME;
+                $AMT = $replyData->PAYMENTINFO_0_AMT;
+                $currencycode = $replyData->PAYMENTINFO_0_CURRENCYCODE;
+                $taxamt = $replyData->PAYMENTINFO_0_TAXAMT;
+                $paymentstatus = $replyData->PAYMENTINFO_0_PAYMENTSTATUS;
+                $pendingreason = $replyData->PAYMENTINFO_0_PENDINGREASON;
+                $reasoncode = $replyData->PAYMENTINFO_0_REASONCODE;
+
+                $cart = $this->get('request')->getSession()->get('cart');
+                $cart = null;
+                $this->get('request')->getSession()->set('cart',$cart);
+            }
+        } else {
+            throw new Exception('ECSetExpressCheckout: We failed to get a successfull response from PayPal.');
+        }
+        return new Response("ok");
+    }
+
+
 }

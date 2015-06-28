@@ -1,15 +1,15 @@
 <?php
 namespace eDemy\CartBundle\Tools;
 
-use Zend\Http\Client;
+use Zend_Http_Client as Client;
 use BeSimple\SoapBundle\Soap\SoapRequest;
 
-class Paypal_Client extends Client {
-    private $_api_sandbox_version = '';
-    private $_api_sandbox_username = '';
-    private $_api_sandbox_password = '';
-    private $_api_sandbox_signature = '';
-    public $api_sandbox_expresscheckout_uri = '';
+class PaypalClient extends Client {
+    private $_api_sandbox_version = '78';
+    private $_api_sandbox_username = 'pedidos-facilitator_api1.cosmix.es';
+    private $_api_sandbox_password = 'AGTBMMXR4CSS32AP';
+    private $_api_sandbox_signature = 'ABX3xD-3o7C.MOLRDjHtxjljh8iVAivFi4rLNbfeNgM3oZe.tWH-COUa';
+    public $api_sandbox_expresscheckout_uri = 'https://api-3t.sandbox.paypal.com/nvp';
 
     private $_api_version = '';
     private $_api_username = '';
