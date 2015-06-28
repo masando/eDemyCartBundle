@@ -190,7 +190,6 @@ class CartController extends BaseController
 
     public function onCartPaypal(ContentEvent $event)
     {
-        die();
         //$request = $this->requestStack->getCurrentRequest();
         $this->addEventModule($event, "templates/cart/paypal", array(
             'cart'              => $this->cart,
@@ -211,12 +210,12 @@ class CartController extends BaseController
         $msg = "";
         $host = $frontcontroller = $request->getHost();
         $env = $this->kernel->getEnvironment();
-        if($host == 'beta.blenderseyewear.es' or $env == 'dev'){
+        if($host == '' or $env == 'dev'){
             $mailmsg = 'pedido de prueba';
-            $mailto = 'manuel@edemy.es';
+            $mailto = '';
         } else {
             $mailmsg = 'Nuevo pedido';
-            $mailto = 'pedidos@blenderseyewear.es';
+            $mailto = '';
         }
         
         foreach($request->request as $key => $value) {
@@ -225,7 +224,7 @@ class CartController extends BaseController
 
         $message = \Swift_Message::newInstance()
             ->setSubject($mailmsg)
-            ->setFrom('hola@blenderseyewear.es')
+            ->setFrom('')
             ->setTo($mailto)
             ->setBody($msg)
         ;
