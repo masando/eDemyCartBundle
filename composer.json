@@ -16,7 +16,7 @@
     "edemy/mainbundle": "*",
     "payum/payum-bundle": "*",
     "payum/offline": "*",
-    "zendframework/zend-http": "2.*"
+    "zendframework/zend-http": "*"
   },
   "autoload" : {
     "psr-0" : { "eDemy\\CartBundle" : "" }
