@@ -1,11 +1,11 @@
 <?php
 namespace eDemy\CartBundle\Tools;
 
-use Zend_Http_Client as Client;
+use Zend\Http\Client;
 use BeSimple\SoapBundle\Soap\SoapRequest;
 
 class PaypalClient extends Client {
-    private $_api_sandbox_version = '78';
+    private $_api_sandbox_version = '109.0';
     private $_api_sandbox_username = 'pedidos-facilitator_api1.cosmix.es';
     private $_api_sandbox_password = 'AGTBMMXR4CSS32AP';
     private $_api_sandbox_signature = 'ABX3xD-3o7C.MOLRDjHtxjljh8iVAivFi4rLNbfeNgM3oZe.tWH-COUa';
@@ -29,12 +29,13 @@ class PaypalClient extends Client {
                 'VERSION' => urlencode($this->_api_sandbox_version)
             ));
         } else {
-            $this->parameters = array_merge($this->parameters, array(
-                'USER' => urlencode($this->_api_username),
-                'PWD' => urlencode($this->_api_password),
-                'SIGNATURE' => urlencode($this->_api_signature),
-                'VERSION' => urlencode($this->_api_version)
-            ));
+//            $this->parameters = array_merge($this->parameters, array(
+//                'USER' => urlencode($this->_api_username),
+//                'PWD' => urlencode($this->_api_password),
+//                'SIGNATURE' => urlencode($this->_api_signature),
+//                'VERSION' => urlencode($this->_api_version)
+//            ));
+            die();
         }
     }
 
@@ -63,11 +64,12 @@ class PaypalClient extends Client {
 // echo($paymentAmount);
 // die();
         foreach($items->getItems() as $item) {
+//            die(var_dump($item->getProduct()->getDescription()));
             $this->parameters = array_merge($this->parameters, array(
                 'L_PAYMENTREQUEST_0_NAME'.$i => $item->getProduct()->getName(),
 //'L_PAYMENTREQUEST_0_NUMBER0' => '123',
-                'L_PAYMENTREQUEST_0_DESC'.$i => $item->getProduct()->getDescription(),
-                'L_PAYMENTREQUEST_0_AMT'.$i => $item->getProduct()->getPrecio(),
+                'L_PAYMENTREQUEST_0_DESC'.$i => 'description',//$item->getProduct()->getDescription(),
+                'L_PAYMENTREQUEST_0_AMT'.$i => $item->getProduct()->getPrice(),
                 'L_PAYMENTREQUEST_0_QTY'.$i => $item->getQuantity()
             ));
 // &PAYMENTREQUEST_0_ITEMAMT=99.30

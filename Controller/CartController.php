@@ -11,8 +11,6 @@ use eDemy\MainBundle\Entity\Param;
 use eDemy\CartBundle\Entity\Cart;
 use eDemy\CartBundle\Entity\CartItem;
 use eDemy\CartBundle\Tools\PaypalClient;
-use Zend\Http\Client;
-
 
 class CartController extends BaseController
 {
@@ -30,20 +28,16 @@ class CartController extends BaseController
             'edemy_cart_cart_remove'            => array('onCartRemove', 0),
             'edemy_cart_cart_notify'            => array('onCartNotify', 0),
             'edemy_cart_cart_success'           => array('onCartSuccess', 0),
-            'edemy_cart_paypal_landing'         => array('onPaypalAction', 0),
-            'edemy_cart_paypal_paymentcompleted'=> array('onPaypalPaymentCompletedAction', 0),
+            'edemy_cart_cart_paypallanding'         => array('onPaypalAction', 0),
+            'edemy_cart_cart_paypalpaymentcompleted'=> array('onPaypalPaymentCompletedAction', 0),
         ));
     }
 
     public function onFrontpage(ContentEvent $event)
     {
 //        die(var_dump($this->getSessionId()));
-        $cart = $this->getRepository()->findBySession($this->getSessionId());
-        if($cart) {
-            $cart->setEntityManager($this->get('doctrine.orm.entity_manager'));
-        }
         $this->addEventModule($event, 'templates/cart/frontpage', array(
-            'cart'                => $cart,
+            'cart'                => $this->getCart(),
             //'items'             => $this->get('edemy.cart')->getItems(),
             //'locale'            => $request = $this->requestStack->getCurrentRequest()->attributes->get('_locale'),
         ));
@@ -51,10 +45,32 @@ class CartController extends BaseController
         return true;
     }
 
+    public function getCart()
+    {
+        $cart = $this->getRepository()->findBySession($this->getSessionId());
+        if($cart) {
+            $cart->setEntityManager($this->get('doctrine.orm.entity_manager'));
+        } else {
+            $cart = new Cart($this->getEm(), $this->getSessionId());
+        }
+
+        return $cart;
+    }
+
     public function onCartAdd(ContentEvent $event)
     {
         $id = $this->getRequest()->attributes->get('id');
         $product = $this->get('doctrine.orm.entity_manager')->getRepository('eDemyProductBundle:Product')->findOneById($id);
+
+        if(($mailto = $this->getParam('sendtomail', 'eDemyMainBundle')) != 'sendtomail') {
+            $message = \Swift_Message::newInstance()
+                ->setSubject('add to cart ' . $product->getName())
+                ->setFrom('web@maste.es')
+                ->setTo($mailto)
+                ->setBody($product->getName());
+            $this->get('mailer')->send($message);
+        }
+
         if($this->get('kernel')->getEnvironment() == 'dev') {
             //die(var_dump($this->get('edemy.cart')));
             //die(var_dump($product->getId()));
@@ -62,13 +78,7 @@ class CartController extends BaseController
         }
 //        die(var_dump($product));
         if($product) {
-            $cart = $this->getRepository()->findBySession($this->getSessionId());
-//            die(var_dump($cart));
-            if($cart == null) {
-                $cart = new Cart($this->getEm(), $this->getSessionId());
-            } else {
-                $cart->setEntityManager($this->get('doctrine.orm.entity_manager'));
-            }
+            $cart = $this->getCart();
             // @TODO BUSCAR EL ITEM EN EL CARRITO PARA SUMAR O AÑADIR
             $cart->addProduct($product);
             $this->getEm()->persist($cart);
@@ -91,8 +101,7 @@ class CartController extends BaseController
         $id = $this->getRequest()->attributes->get('id');
         $product = $this->get('doctrine.orm.entity_manager')->getRepository('eDemyProductBundle:Product')->findOneById($id);
         if($product) {
-            $cart = $this->getRepository()->findBySession($this->getSessionId());
-            $cart->setEntityManager($this->get('doctrine.orm.entity_manager'));
+            $cart = $this->getCart();
             $cart->removeProduct($product);
             $this->getEm()->persist($cart);
             $this->getEm()->flush();
@@ -280,15 +289,16 @@ class CartController extends BaseController
         return $form;
     }
 
-    public function onPaypalAction($landing = 'paypal') {
+    public function onPaypalAction($landing = 'paypal')
+    {
         //TODO comprobar que no se ha producido ninguna
 
         $uri = 'https://api-3t.sandbox.paypal.com/nvp';
         $returnURL = 'http://www.maste.es/app_dev.php/paypal/paymentcompleted';
         $cancelURL = 'http://www.maste.es/app_dev.php/es/cart';
 
-        //$amount = $order->getTotal();
-
+        $cart = $this->getCart();
+        $amount = $cart->getTotal();
         $currency_code = 'EUR';
 
         $adapter = new PaypalClient('dev', $uri);
@@ -304,39 +314,44 @@ class CartController extends BaseController
             $returnURL,
             $cancelURL,
             $currency_code,
-            $order,
+            $cart,
             $landing
         );
-         die(var_dump($reply));
 
         if ($reply->isSuccess()) {
             $replyData = $adapter->parse($reply->getBody());
-            //echo(var_dump($reply));
-            //echo($replyData->TOKEN);
-            //die();
-            if ($replyData->ACK == 'Success' || $replyData->ACK == 'SUCCESSWITHWARNING') {
-                //die("dentro");
+//            echo(var_dump($reply));
+//            echo($replyData->ACK);
+//            die();
+            if ($replyData->ACK == 'Success' || $replyData->ACK == 'SuccessWithWarning') {
+//                die("dentro");
                 $token = $replyData->TOKEN; // ...It's already URL encoded for us.
                 // Save the amount total... We must use this when we capture the funds.
                 $_SESSION['CHECKOUT_AMOUNT'] = $amount;
                 // Redirect to the PayPal express checkout page, using the token.
 
-                if($this->container->getParameter('kernel.environment') == 'dev') {
+//                if($this->container->getParameter('kernel.environment') == 'dev') {
                     //die();
-                    header(
-                        'Location: ' . $adapter->api_sandbox_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
-                    );
-                } else {
+//                    header(
+//                        'Location: ' . $adapter->api_sandbox_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
+//                    );
+                header(
+//                    'Location: ' . $adapter->api_sandbox_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
+                'Location: https://www.sandbox.paypal.com/webscr?&cmd=_express-checkout&token=' . $token
 
-                    header(
-                        'Location: ' . $adapter->api_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
-                    );
-                }
+                );
+
+                die();
+//                } else {
+//
+//                    header(
+//                        'Location: ' . $adapter->api_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
+//                    );
+//                }
             }
         } else {
             throw new Exception('ECSetExpressCheckout: We failed to get a successfull response from PayPal.');
         }
-        die("a");
     }
 
     public function onPaypalPaymentCompletedAction() {
