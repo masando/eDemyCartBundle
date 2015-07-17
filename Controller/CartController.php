@@ -68,7 +68,7 @@ class CartController extends BaseController
                 ->setFrom('web@maste.es')
                 ->setTo($mailto)
                 ->setBody($product->getName());
-            $this->get('mailer')->send($message);
+            //$this->get('mailer')->send($message);
         }
 
         if($this->get('kernel')->getEnvironment() == 'dev') {
