@@ -49,12 +49,13 @@ edemy_cart_cart_success:
     defaults:       { _controller: edemy.main:indexAction }
     requirements:   { _locale: es|en }
 
+edemy_cart_cart_paypalpaymentcompleted:
+    path:           /{_locale}/paypal/paymentcompleted
+    defaults:       { _controller: edemy.main:indexAction }
+    requirements:   { _locale: es|en }
+
 edemy_cart_cart_paypallanding:
     path:           /{_locale}/paypal/{landing}
     defaults:       { _controller: edemy.main:indexAction, landing: paypal }
     requirements:   { _locale: es|en }
 
-edemy_cart_cart_paypalpaymentcompleted:
-    path:           /{_locale}/paypal/paymentcompleted
-    defaults:       { _controller: edemy.main:indexAction }
-    requirements:   { _locale: es|en }

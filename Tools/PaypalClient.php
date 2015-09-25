@@ -5,38 +5,11 @@ use Zend\Http\Client;
 use BeSimple\SoapBundle\Soap\SoapRequest;
 
 class PaypalClient extends Client {
-    private $_api_sandbox_version = '109.0';
-    private $_api_sandbox_username = 'pedidos-facilitator_api1.cosmix.es';
-    private $_api_sandbox_password = 'AGTBMMXR4CSS32AP';
-    private $_api_sandbox_signature = 'ABX3xD-3o7C.MOLRDjHtxjljh8iVAivFi4rLNbfeNgM3oZe.tWH-COUa';
-    public $api_sandbox_expresscheckout_uri = 'https://api-3t.sandbox.paypal.com/nvp';
-
-    private $_api_version = '';
-    private $_api_username = '';
-    private $_api_password = '';
-    private $_api_signature = '';
-    public $api_expresscheckout_uri = '';
-
     private $parameters = array();
 
-    function __construct($env = 'prod', $uri = null, $options = null) {
+    function __construct($uri = null, $options = array()) {
         parent::__construct($uri, $options);
-        if($env == 'dev') {
-            $this->parameters = array_merge($this->parameters, array(
-                'USER' => urlencode($this->_api_sandbox_username),
-                'PWD'=> urlencode($this->_api_sandbox_password),
-                'SIGNATURE' => urlencode($this->_api_sandbox_signature),
-                'VERSION' => urlencode($this->_api_sandbox_version)
-            ));
-        } else {
-//            $this->parameters = array_merge($this->parameters, array(
-//                'USER' => urlencode($this->_api_username),
-//                'PWD' => urlencode($this->_api_password),
-//                'SIGNATURE' => urlencode($this->_api_signature),
-//                'VERSION' => urlencode($this->_api_version)
-//            ));
-            die();
-        }
+        $this->parameters = array_merge($this->parameters, $options);
     }
 
     /**
@@ -60,38 +33,25 @@ class PaypalClient extends Client {
         if($landing == 'card') $this->parameters = array_merge($this->parameters, array('LANDINGPAGE' => 'Billing'));
 
         $i = 0;
-// die(var_dump($items->getItems()));
-// echo($paymentAmount);
-// die();
         foreach($items->getItems() as $item) {
-//            die(var_dump($item->getProduct()->getDescription()));
             $this->parameters = array_merge($this->parameters, array(
-                'L_PAYMENTREQUEST_0_NAME'.$i => $item->getProduct()->getName(),
-//'L_PAYMENTREQUEST_0_NUMBER0' => '123',
-                'L_PAYMENTREQUEST_0_DESC'.$i => 'description',//$item->getProduct()->getDescription(),
-                'L_PAYMENTREQUEST_0_AMT'.$i => $item->getProduct()->getPrice(),
-                'L_PAYMENTREQUEST_0_QTY'.$i => $item->getQuantity()
+                'L_PAYMENTREQUEST_0_NAME' . $i => $item->getProduct()->getName(),
+                'L_PAYMENTREQUEST_0_DESC' . $i => 'description',//$item->getProduct()->getDescription(),
+                'L_PAYMENTREQUEST_0_AMT' . $i => $item->getProduct()->getPrice(),
+                'L_PAYMENTREQUEST_0_QTY' . $i => $item->getQuantity()
             ));
-// &PAYMENTREQUEST_0_ITEMAMT=99.30
-// &PAYMENTREQUEST_0_TAXAMT=2.58
-// &PAYMENTREQUEST_0_SHIPPINGAMT=3.00
-// &PAYMENTREQUEST_0_HANDLINGAMT=2.99
-// &PAYMENTREQUEST_0_SHIPDISCAMT=-3.00
-// &PAYMENTREQUEST_0_INSURANCEAMT=1.00
             $i++;
         }
         $this->parameters = array_merge($this->parameters, array(
-            'PAYMENTREQUEST_0_AMT' => urlencode($paymentAmount),
             'PAYMENTREQUEST_0_CURRENCYCODE' => $currencyID,
+            'PAYMENTREQUEST_0_SHIPPINGAMT' => urlencode(4.95),
+            'PAYMENTREQUEST_0_ITEMAMT' => urlencode($paymentAmount),
+            'PAYMENTREQUEST_0_AMT' => urlencode($paymentAmount + 4.95),
             'ALLOWNOTE' => 1
         ));
         $this->setParameterGet($this->parameters);
 
-// die($this->request(\Zend\Http\Client::GET));
-
-// &ALLOWNOTE=1
         return $this->send();
-// return $this->send(\Zend\Http\Client::METHOD_GET);
     }
 
     /**
@@ -109,15 +69,16 @@ class PaypalClient extends Client {
      * @return Zend_Http_Response
      * @throws Zend_Http_Client_Exception
      */
-    function ecDoExpressCheckout($token, $payer_id, $payment_amount, $currency_code, $payment_action = 'Sale') {
+    function ecDoExpressCheckout($token, $payer_id, $payment_amount, $currency_code, $payment_action = 'Authorization') {
         $this->parameters = array_merge($this->parameters, array(
             'METHOD' => 'DoExpressCheckoutPayment',
             'PAYMENTREQUEST_0_AMT' => $payment_amount,
             'PAYMENTREQUEST_0_CURRENCYCODE' => 'EUR',
+            'PAYMENTREQUEST_0_PAYMENTACTION' => $payment_action,
             'TOKEN' => $token,
             'PAYERID' => $payer_id,
-            'PAYMENTACTION' => $payment_action
-        )); // Can be 'Authorization', 'Sale', or 'Order'
+            'PAYMENTACTION' => $payment_action,
+    )); // Can be 'Authorization', 'Sale', or 'Order'
         $this->setParameterGet($this->parameters);
         return $this->send();
 // return $this->request(\Zend\Http\Client::GET);

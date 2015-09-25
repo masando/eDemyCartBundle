@@ -57,6 +57,17 @@ class CartController extends BaseController
         return $cart;
     }
 
+    public function emptyCart()
+    {
+        $cart = $this->getRepository()->findBySession($this->getSessionId());
+
+        if($cart) {
+            $cart->emptyCart($this->getEm());
+        }
+
+        return true;
+    }
+
     public function onCartAdd(ContentEvent $event)
     {
         $id = $this->getRequest()->attributes->get('id');
@@ -65,7 +76,7 @@ class CartController extends BaseController
         if(($mailto = $this->getParam('sendtomail', 'eDemyMainBundle')) != 'sendtomail') {
             $message = \Swift_Message::newInstance()
                 ->setSubject('add to cart ' . $product->getName())
-                ->setFrom('web@maste.es')
+                //->setFrom('__MAILTO__')
                 ->setTo($mailto)
                 ->setBody($product->getName());
             //$this->get('mailer')->send($message);
@@ -76,7 +87,7 @@ class CartController extends BaseController
             //die(var_dump($product->getId()));
             //die(var_dump($product));
         }
-//        die(var_dump($product));
+        //die(var_dump($product));
         if($product) {
             $cart = $this->getCart();
             // @TODO BUSCAR EL ITEM EN EL CARRITO PARA SUMAR O AÑADIR
@@ -291,24 +302,60 @@ class CartController extends BaseController
 
     public function onPaypalAction($landing = 'paypal')
     {
-        //TODO comprobar que no se ha producido ninguna
-
-        $uri = 'https://api-3t.sandbox.paypal.com/nvp';
-        $returnURL = 'http://www.maste.es/app_dev.php/paypal/paymentcompleted';
-        $cancelURL = 'http://www.maste.es/app_dev.php/es/cart';
+        $env = $this->get('kernel')->getEnvironment();
+        if($env == 'dev') {
+            $uri = 'https://api-3t.sandbox.paypal.com/nvp';
+            if($this->getParam('paypal_returnURL_dev') != 'paypal_returnURL_dev') {
+                $returnURL = $this->getParam('paypal_returnURL_dev');
+            }
+            if($this->getParam('paypal_cancelURL_dev') != 'paypal_cancelURL_dev') {
+                $cancelURL = $this->getParam('paypal_cancelURL_dev');
+            }
+            if($this->getParam('paypal_api_sandbox_username') != 'paypal_api_sandbox_username') {
+                $api_sandbox_username = $this->getParam('paypal_api_sandbox_username');
+            }
+            if($this->getParam('paypal_api_sandbox_password') != 'paypal_api_sandbox_password') {
+                $api_sandbox_password = $this->getParam('paypal_api_sandbox_password');
+            }
+            if($this->getParam('paypal_api_sandbox_signature') != 'paypal_api_sandbox_signature') {
+                $api_sandbox_signature = $this->getParam('paypal_api_sandbox_signature');
+            }
+            $options = array(
+                'USER' => urlencode($api_sandbox_username),
+                'PWD'=> urlencode($api_sandbox_password),
+                'SIGNATURE' => urlencode($api_sandbox_signature),
+                'VERSION' => urlencode('109.0')
+            );
+        } else {
+            $uri = 'https://api-3t.paypal.com/nvp';
+            if($this->getParam('paypal_returnURL') != 'paypal_returnURL') {
+                $returnURL = $this->getParam('paypal_returnURL');
+            }
+            if($this->getParam('paypal_cancelURL') != 'paypal_cancelURL') {
+                $cancelURL = $this->getParam('paypal_cancelURL');
+            }
+            if($this->getParam('paypal_api_username') != 'paypal_api_username') {
+                $api_username = $this->getParam('paypal_api_username');
+            }
+            if($this->getParam('paypal_api_password') != 'paypal_api_password') {
+                $api_password = $this->getParam('paypal_api_password');
+            }
+            if($this->getParam('paypal_api_signature') != 'paypal_api_signature') {
+                $api_signature = $this->getParam('paypal_api_signature');
+            }
+            $options = array(
+                'USER' => urlencode($api_username),
+                'PWD'=> urlencode($api_password),
+                'SIGNATURE' => urlencode($api_signature),
+                'VERSION' => urlencode('109.0')
+            );
+        }
 
         $cart = $this->getCart();
         $amount = $cart->getTotal();
         $currency_code = 'EUR';
 
-        $adapter = new PaypalClient('dev', $uri);
-        // $paymentAmount,
-        // $returnURL,
-        // $cancelURL,
-        // $currencyID,
-        // $items,
-        // $landing = 'paypal',
-        // $payment_action = 'Authorization')
+        $adapter = new PaypalClient($uri, $options);
         $reply = $adapter->ecSetExpressCheckout(
             $amount,
             $returnURL,
@@ -317,78 +364,94 @@ class CartController extends BaseController
             $cart,
             $landing
         );
-
         if ($reply->isSuccess()) {
             $replyData = $adapter->parse($reply->getBody());
-//            echo(var_dump($reply));
-//            echo($replyData->ACK);
-//            die();
             if ($replyData->ACK == 'Success' || $replyData->ACK == 'SuccessWithWarning') {
-//                die("dentro");
                 $token = $replyData->TOKEN; // ...It's already URL encoded for us.
                 // Save the amount total... We must use this when we capture the funds.
                 $_SESSION['CHECKOUT_AMOUNT'] = $amount;
                 // Redirect to the PayPal express checkout page, using the token.
-
-//                if($this->container->getParameter('kernel.environment') == 'dev') {
-                    //die();
-//                    header(
-//                        'Location: ' . $adapter->api_sandbox_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
-//                    );
-                header(
-//                    'Location: ' . $adapter->api_sandbox_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
-                'Location: https://www.sandbox.paypal.com/webscr?&cmd=_express-checkout&token=' . $token
-
-                );
-
-                die();
-//                } else {
-//
-//                    header(
-//                        'Location: ' . $adapter->api_expresscheckout_uri . '?&cmd=_express-checkout&token=' . $token
-//                    );
-//                }
+                if($env == 'dev') {
+                    header(
+                        'Location: https://www.sandbox.paypal.com/webscr?&cmd=_express-checkout&token='.$token
+                    );
+                } else {
+                    header(
+                        'Location: https://www.paypal.com/webscr?&cmd=_express-checkout&token='.$token
+                    );
+                }
             }
         } else {
             throw new Exception('ECSetExpressCheckout: We failed to get a successfull response from PayPal.');
         }
     }
 
-    public function onPaypalPaymentCompletedAction() {
-        die('a');
+    public function onPaypalPaymentCompletedAction(ContentEvent $event) {
         $request = $this->getRequest();
-        $token = $request->query->get('token');
-        $payerid = $request->query->get('PayerID');
-
-        $data = array();
-
-        if($this->container->getParameter('kernel.environment') == 'dev') {
+        $env = $this->get('kernel')->getEnvironment();
+        if($env == 'dev') {
             $uri = 'https://api-3t.sandbox.paypal.com/nvp';
-            $returnURL = 'http://www.be-deco.com/app_dev.php/cart/paymentcomplete';
-            $cancelURL = 'http://www.be-deco.com/app_dev.php/cart/paymentcancelled';
+            if($this->getParam('paypal_returnURL_dev') != 'paypal_returnURL_dev') {
+                $returnURL = $this->getParam('paypal_returnURL_dev');
+            }
+            if($this->getParam('paypal_cancelURL_dev') != 'paypal_cancelURL_dev') {
+                $returnURL = $this->getParam('paypal_cancelURL_dev');
+            }
+            if($this->getParam('paypal_api_sandbox_username') != 'paypal_api_sandbox_username') {
+                $api_sandbox_username = $this->getParam('paypal_api_sandbox_username');
+            }
+            if($this->getParam('paypal_api_sandbox_password') != 'paypal_api_sandbox_password') {
+                $api_sandbox_password = $this->getParam('paypal_api_sandbox_password');
+            }
+            if($this->getParam('paypal_api_sandbox_signature') != 'paypal_api_sandbox_signature') {
+                $api_sandbox_signature = $this->getParam('paypal_api_sandbox_signature');
+            }
+            $options = array(
+                'USER' => urlencode($api_sandbox_username),
+                'PWD'=> urlencode($api_sandbox_password),
+                'SIGNATURE' => urlencode($api_sandbox_signature),
+                'VERSION' => urlencode('109.0')
+            );
         } else {
             $uri = 'https://api-3t.paypal.com/nvp';
-            $returnURL = 'http://www.be-deco.com/cart/paymentcomplete';
-            $cancelURL = 'http://www.be-deco.com/cart/cart';
+            if($this->getParam('paypal_returnURL') != 'paypal_returnURL') {
+                $returnURL = $this->getParam('paypal_returnURL');
+            }
+            if($this->getParam('paypal_cancelURL') != 'paypal_cancelURL') {
+                $returnURL = $this->getParam('paypal_cancelURL');
+            }
+            if($this->getParam('paypal_api_username') != 'paypal_api_username') {
+                $api_username = $this->getParam('paypal_api_username');
+            }
+            if($this->getParam('paypal_api_password') != 'paypal_api_password') {
+                $api_password = $this->getParam('paypal_api_password');
+            }
+            if($this->getParam('paypal_api_signature') != 'paypal_api_signature') {
+                $api_signature = $this->getParam('paypal_api_signature');
+            }
+            $options = array(
+                'USER' => urlencode($api_username),
+                'PWD'=> urlencode($api_password),
+                'SIGNATURE' => urlencode($api_signature),
+                'VERSION' => urlencode('109.0')
+            );
         }
+        $token = $request->query->get('token');
+        $payerid = $request->query->get('PayerID');
+        $data = array();
         $currency_code = 'EUR';
-
-        $adapter = new Paypal_Client($this->container->getParameter('kernel.environment'), $uri);
-
+        $adapter = new PaypalClient($uri, $options);
         $reply = $adapter->ecGetExpressCheckoutDetails(
             $token
         );
+
         $this->order = null;
         if ($reply->isSuccess()) {
             $replyData = $adapter->parse($reply->getBody());
             if ($replyData->ACK == 'Success' || $replyData->ACK == 'SUCCESSWITHWARNING') {
                 $payer_id = $replyData->PAYERID;
                 $payerstatus = $replyData->PAYERSTATUS;
-
-                $this->order = $this->setOrder($replyData);
-                if($this->order){
-                    $amount = $this->order->getTotal();
-                }
+                $amount = $replyData->AMT;
             }
         } else {
             throw new Exception('No hemos obtenido una respuesta de Paypal.');
@@ -396,8 +459,13 @@ class CartController extends BaseController
         if($amount!=null){
             $this->confirmPayAction($token, $payer_id, $amount, $currency_code);
         }
-        return $this->render('eDemyCartBundle:Cart:confirm.html.twig', array(
-            'order' => $this->order
+        //EL CARRITO SE CONVIERTE EN PEDIDO Y SE VACÍA
+        $this->emptyCart();
+        $this->addEventModule($event, 'templates/cart/success', array(
+            //'cart'                => $this->getCart(),
+            //'order'               => $this->order,
+            //'items'             => $this->get('edemy.cart')->getItems(),
+            //'locale'            => $request = $this->requestStack->getCurrentRequest()->attributes->get('_locale'),
         ));
     }
 
@@ -405,12 +473,56 @@ class CartController extends BaseController
      * @Route("/paymentconfirmed")
      */
     public function confirmPayAction($token, $payer_id, $payment_amount, $currency_code) {
-        if($this->container->getParameter('kernel.environment') == 'dev') {
+        //die('b');
+        $env = $this->get('kernel')->getEnvironment();
+        if($env == 'dev') {
             $uri = 'https://api-3t.sandbox.paypal.com/nvp';
+            if($this->getParam('paypal_returnURL_dev') != 'paypal_returnURL_dev') {
+                $returnURL = $this->getParam('paypal_returnURL_dev');
+            }
+            if($this->getParam('paypal_cancelURL_dev') != 'paypal_cancelURL_dev') {
+                $returnURL = $this->getParam('paypal_cancelURL_dev');
+            }
+            if($this->getParam('paypal_api_sandbox_username') != 'paypal_api_sandbox_username') {
+                $api_sandbox_username = $this->getParam('paypal_api_sandbox_username');
+            }
+            if($this->getParam('paypal_api_sandbox_password') != 'paypal_api_sandbox_password') {
+                $api_sandbox_password = $this->getParam('paypal_api_sandbox_password');
+            }
+            if($this->getParam('paypal_api_sandbox_signature') != 'paypal_api_sandbox_signature') {
+                $api_sandbox_signature = $this->getParam('paypal_api_sandbox_signature');
+            }
+            $options = array(
+                'USER' => urlencode($api_sandbox_username),
+                'PWD'=> urlencode($api_sandbox_password),
+                'SIGNATURE' => urlencode($api_sandbox_signature),
+                'VERSION' => urlencode('109.0')
+            );
         } else {
             $uri = 'https://api-3t.paypal.com/nvp';
+            if($this->getParam('paypal_returnURL') != 'paypal_returnURL') {
+                $returnURL = $this->getParam('paypal_returnURL');
+            }
+            if($this->getParam('paypal_cancelURL') != 'paypal_cancelURL') {
+                $returnURL = $this->getParam('paypal_cancelURL');
+            }
+            if($this->getParam('paypal_api_username') != 'paypal_api_username') {
+                $api_username = $this->getParam('paypal_api_username');
+            }
+            if($this->getParam('paypal_api_password') != 'paypal_api_password') {
+                $api_password = $this->getParam('paypal_api_password');
+            }
+            if($this->getParam('paypal_api_signature') != 'paypal_api_signature') {
+                $api_signature = $this->getParam('paypal_api_signature');
+            }
+            $options = array(
+                'USER' => urlencode($api_username),
+                'PWD'=> urlencode($api_password),
+                'SIGNATURE' => urlencode($api_signature),
+                'VERSION' => urlencode('109.0')
+            );
         }
-        $adapter = new Paypal_Client($this->container->getParameter('kernel.environment'), $uri);
+        $adapter = new PaypalClient($uri, $options);
         $reply = $adapter->ecDoExpressCheckout(
             $token,
             $payer_id,
@@ -419,10 +531,12 @@ class CartController extends BaseController
         );
         if ($reply->isSuccess()) {
             $replyData = $adapter->parse($reply->getBody());
+
             //echo(var_dump($reply));
             //echo($replyData->TOKEN);
             //die();
             if ($replyData->ACK == 'Success' || $replyData->ACK == 'SUCCESSWITHWARNING') {
+                //BORRAR CARRITO
                 //die("dentro");
                 $transactionid = $replyData->PAYMENTINFO_0_TRANSACTIONID; // ...It's already URL encoded for us.
                 $paymenttype = $replyData->PAYMENTINFO_0_TRANSACTIONTYPE;
@@ -441,7 +555,8 @@ class CartController extends BaseController
         } else {
             throw new Exception('ECSetExpressCheckout: We failed to get a successfull response from PayPal.');
         }
-        return new Response("ok");
+
+        return true;
     }
 
 

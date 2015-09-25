@@ -82,6 +82,7 @@ class Cart extends BaseEntity
     {
         $this->items->removeElement($item);
         $this->getEntityManager()->remove($item);
+        $this->getEntityManager()->flush();
     }
 
     public function addProduct(Product $product)
@@ -130,4 +131,14 @@ class Cart extends BaseEntity
 
         return $total;
     }
+
+    public function emptyCart($em)
+    {
+        $this->setEntityManager($em);
+        //die(var_dump($em));
+        foreach ($this->items as $item) {
+            $this->removeItem($item);
+        }
+    }
+
 }

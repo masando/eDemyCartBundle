@@ -31,6 +31,7 @@ class PaypalController extends Controller {
         );
     }
     public function getOrder(){
+        die('a');
         $em = $this->get('doctrine')->getEntityManager();
         $cart = $this->get('request')->getSession()->get('cart');
         $order = null;
@@ -62,6 +63,7 @@ class PaypalController extends Controller {
     }
 
     public function setOrder($replyData){
+        die('b');
         // $countrycode = $replyData->COUNTRYCODE;
         //$business = $replyData->BUSINESS;
         //$shiptostate = $replyData->PAYMENTREQUEST_0_SHIPTOSTATE;
@@ -195,16 +197,17 @@ class PaypalController extends Controller {
     public function paypalAction($landing = 'paypal') {
         //TODO comprobar que no se ha producido ninguna
 
+        /*
         if($this->container->getParameter('kernel.environment') == 'dev') {
             $uri = 'https://api-3t.sandbox.paypal.com/nvp';
-            $returnURL = 'http://www.be-deco.com/app_dev.php/cart/paymentcompleted';
-            $cancelURL = 'http://www.be-deco.com/app_dev.php/cart';
+            $returnURL = 'http://beta.maste.es/cart/paymentcompleted';
+            $cancelURL = 'http://beta.maste.com/cart';
         } else {
             $uri = 'https://api-3t.paypal.com/nvp';
-            $returnURL = 'http://www.be-deco.com/cart/paymentcompleted';
-            $cancelURL = 'http://www.be-deco.com/cart';
+            $returnURL = 'http://www.maste.es/cart/paymentcompleted';
+            $cancelURL = 'http://www.maste.es/cart';
         }
-
+        */
         $order = $this->getOrder();
 
         // $em = $this->get('doctrine')->getEntityManager();
@@ -231,7 +234,7 @@ class PaypalController extends Controller {
         // }
 
         $amount = $order->getTotal();
-
+        die(var_dump($amount));
         $currency_code = 'EUR';
 
         $adapter = new Paypal_Client($this->container->getParameter('kernel.environment'), $uri);
@@ -294,12 +297,12 @@ class PaypalController extends Controller {
 
         if($this->container->getParameter('kernel.environment') == 'dev') {
             $uri = 'https://api-3t.sandbox.paypal.com/nvp';
-            $returnURL = 'http://www.be-deco.com/app_dev.php/cart/paymentcomplete';
-            $cancelURL = 'http://www.be-deco.com/app_dev.php/cart/paymentcancelled';
+            $returnURL = 'http://beta.maste.es/cart/paymentcomplete';
+            $cancelURL = 'http://beta.maste.es/cart/paymentcancelled';
         } else {
             $uri = 'https://api-3t.paypal.com/nvp';
-            $returnURL = 'http://www.be-deco.com/cart/paymentcomplete';
-            $cancelURL = 'http://www.be-deco.com/cart/cart';
+            $returnURL = 'http://www.maste.es/cart/paymentcomplete';
+            $cancelURL = 'http://www.maste.es/cart/cart';
         }
         $currency_code = 'EUR';
 
