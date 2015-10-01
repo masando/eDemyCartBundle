@@ -89,12 +89,14 @@ class CartController extends BaseController
         }
         //die(var_dump($product));
         if($product) {
-            $cart = $this->getCart();
-            // @TODO BUSCAR EL ITEM EN EL CARRITO PARA SUMAR O AÑADIR
-            $cart->addProduct($product);
-            $this->getEm()->persist($cart);
-            $this->getEm()->flush();
-            //$this->get('edemy.cart')->addObject($product->getId(), 'cesta');
+            if($product->getPrice()) {
+                $cart = $this->getCart();
+                // @TODO BUSCAR EL ITEM EN EL CARRITO PARA SUMAR O AÑADIR
+                $cart->addProduct($product);
+                $this->getEm()->persist($cart);
+                $this->getEm()->flush();
+                //$this->get('edemy.cart')->addObject($product->getId(), 'cesta');
+            }
         }
 
         $response = $this->newRedirectResponse('edemy_cart_frontpage');

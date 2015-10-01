@@ -25,11 +25,12 @@ class CartExtension extends \Twig_Extension
 
     public function cartButtonFunction($entity)
     {
-//        if ($this->container->get('security.authorization_checker')->isGranted('ROLE_USER')) {
-            $router = $this->container->get('router');
-            $edemyMain = $this->container->get('edemy.main');
-            //$namespace = $edemyMain->getNamespace();
-            //$ruta =  $namespace . '.' . $_route;
+        //if ($this->container->get('security.authorization_checker')->isGranted('ROLE_USER')) {
+        $router = $this->container->get('router');
+        $edemyMain = $this->container->get('edemy.main');
+        //$namespace = $edemyMain->getNamespace();
+        //$ruta =  $namespace . '.' . $_route;
+        if($entity->getPrice()) {
             $button = $edemyMain->render(
                 'templates/cart/button',
                 array(
@@ -38,7 +39,10 @@ class CartExtension extends \Twig_Extension
             );
 
             return $button;
-//        }
+        }
+
+        return false;
+        //}
     }
 
     public function getName()
